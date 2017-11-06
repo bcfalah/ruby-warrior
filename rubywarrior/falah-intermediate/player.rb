@@ -1,5 +1,6 @@
 class Player
   def play_turn(warrior)
-    # add your code here
+    direction = warrior.direction_of_stairs
+    warrior.walk!(direction)
   end
 end
