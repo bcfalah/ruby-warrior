@@ -1,33 +1,41 @@
 class Map
-  attr_accessor :spaces
+  attr_reader :enemies_count
 
-  def initialize(warrior)
-    @spaces = []
+  def populate(warrior)
     spaces_with_units = warrior.listen
+    @enemies_count ||= warrior.listen.count(&:enemy?)
+    @enemies_bound_count ||= 0
+    @near_spaces = []
 
     spaces_with_units.each do |space_with_unit|
-      space = Space.new(space_with_unit)
-      space.direction = warrior.direction_of(space_with_unit)
-      @spaces << space
+      direction = warrior.direction_of(space_with_unit)
+      near_space = warrior.feel(direction)
+      if (space_with_unit.location == near_space.location)
+        @near_spaces << Space.new(space: space_with_unit, direction: direction)
+      end
     end
   end
 
-  def bind_enemy(warrior)
-    warrior.bind!(direction)
-    enemies_bound.first
-  end
-
-  def all_enemies_bound?
-    enemies_bound.empty?
+  # bind a near enemy unless is the only one that is free
+  def bind_near_enemy(warrior)
+    if (near_enemies.count > 1) && (direction = near_enemy_direction)
+      warrior.bind!(direction)
+      @enemies_bound_count += 1
+      direction
+    end
   end
 
   private
 
-  def enemies
-    @spaces.select { |space| space.has_a?(:enemy) }
+  def near_enemies
+    @near_spaces.select { |space| space.has_a?(:enemy) }
   end
 
-  def enemies_bound
-    enemies.select { |e| e.status?(:bound) }
+  def near_enemy_direction
+    near_enemy ? near_enemy.direction : nil
+  end
+
+  def near_enemy
+    near_enemies.find { |space| space.has_a?(:enemy) }
   end
 end

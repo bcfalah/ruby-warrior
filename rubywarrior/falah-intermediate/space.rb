@@ -1,8 +1,10 @@
 class Space
   attr_accessor :unit_type, :status, :direction
 
-  def initialize(space)
-    #@space = space
+  def initialize(attrs)
+    space = attrs[:space]
+    @direction = attrs[:direction]
+
     if space.enemy?
       @unit_type = :enemy
       @status = :free
