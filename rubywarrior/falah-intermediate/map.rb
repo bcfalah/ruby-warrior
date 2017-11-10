@@ -2,11 +2,9 @@ class Map
   attr_reader :enemies_count
 
   def populate(warrior)
-    spaces_with_units = warrior.listen
-    @enemies_count ||= warrior.listen.count(&:enemy?)
-    @enemies_bound_count ||= 0
+    @warrior = warrior
+    spaces_with_units = @warrior.listen
     @all_spaces = []
-    @near_spaces = []
 
     spaces_with_units.each do |space_with_unit|
       direction = warrior.direction_of(space_with_unit)
@@ -15,59 +13,72 @@ class Map
     end
   end
 
-  # bind a near enemy unless is the only one that is free
-  def bind_near_enemy(warrior)
-    if (near_enemies(warrior).count > 1)
-      direction = near_enemies(warrior).first.direction
-      warrior.bind!(direction)
-      @enemies_bound_count += 1
-      direction
+  def execute_prioritized_action
+    # bind a near enemy unless is the only one that is free
+    if (near_enemy = near_spaces_with(:enemy).first) && interferes_with_next_action?(near_enemy)
+      #bind_enemy
+      attack_enemy
+    elsif (near_hostage = near_spaces_with(:hostage).first) && interferes_with_next_action?(near_hostage)#near_spaces_with(:hostage).any?
+      rescue_hostage
     end
   end
 
-  def go_for_extra_points(warrior)
-    position = warrior.location
-    nearer_enemy(position)
-    nearer_hostage(position)
-    if (all_enemies.count > 0)
-      direction = near_enemy_direction
-      warrior.bind!(direction)
-      @enemies_bound_count += 1
-      direction
+  def go_for_extra_points
+    if hostage_space = spaces_by_priority(:hostage).first
+      direction = hostage_space.direction
+      @warrior.walk!(direction)
+    end
+  end
+
+  def next_prioritazed_direction
+    if hostage_space = spaces_by_priority(:hostage).first
+      hostage_space.direction
+    elsif enemy_space = spaces_by_priority(:enemy).first
+      enemy_space.direction
+    else
+      @warrior.direction_of_stairs
     end
   end
 
   private
 
-  def all_enemies
-    @all_spaces.select { |space| space.has_a?(:enemy) }
+  def spaces_with(unit_type)
+    @all_spaces.select { |space| space.has_a?(unit_type) }
   end
 
-  def near_enemies(warrior)
-    all_enemies.select do |space|
-      #direction = warrior.direction_of(space)
-      near_space = warrior.feel(space.direction)
+  def near_spaces_with(unit_type)
+    spaces_with(unit_type).select do |space|
+      near_space = @warrior.feel(space.direction)
       space.location == near_space.location
     end
   end
 
-  def nearer_enemy(location)
-    all_enemies.select do |space|
-      near_space.location
+  def bind_enemy
+    @warrior.bind! direction_of_nearer_space_with(:enemy)
+  end
+
+  def attack_enemy
+    @warrior.attack! direction_of_nearer_space_with(:enemy)
+  end
+
+  def rescue_hostage
+    @warrior.rescue! direction_of_nearer_space_with(:hostage)
+  end
+
+  def direction_of_nearer_space_with(unit_type)
+    near_spaces_with(unit_type).first.direction
+  end
+
+  def interferes_with_next_action?(space)
+    space.direction == next_prioritazed_direction
+  end
+
+  def spaces_by_priority(unit_type)
+    case unit_type
+    when :hostage
+      spaces_with(:hostage).sort { |s| s.ticking? ? 0 : 1 }
+    when :enemy
+      spaces_with(:enemy)
     end
-  end
-
-  def nearer_hostage(position)
-  end
-
-  def hostages
-    @all_spaces.select { |space| space.has_a?(:hostage) }
-  end
-  # def near_enemy
-  #   near_enemies.find { |space| space.has_a?(:enemy) }
-  # end
-
-  def an_enemy
-    near_enemies.find { |space| space.has_a?(:enemy) }
   end
 end

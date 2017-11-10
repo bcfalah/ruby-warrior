@@ -18,6 +18,10 @@ class Space
     @space.location
   end
 
+  def ticking?
+    @space.ticking?
+  end
+
   def has_a?(unit_type)
     @unit_type == unit_type
   end
