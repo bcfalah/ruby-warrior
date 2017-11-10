@@ -24,10 +24,9 @@ class Map
   end
 
   def go_for_extra_points
-    if hostage_space = spaces_by_priority(:hostage).first
-      direction = hostage_space.direction
-      @warrior.walk!(direction)
-    end
+    extra_points_space = spaces_by_priority(:hostage).first || spaces_by_priority(:enemy).first
+    direction = extra_points_space ? extra_points_space.direction : @warrior.direction_of_stairs
+    @warrior.walk!(direction)
   end
 
   def next_prioritazed_direction
