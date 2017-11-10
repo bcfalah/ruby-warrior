@@ -17,8 +17,8 @@ class Map
 
   # bind a near enemy unless is the only one that is free
   def bind_near_enemy(warrior)
-    if (near_enemies.count > 1)
-      direction = near_enemies.first.direction
+    if (near_enemies(warrior).count > 1)
+      direction = near_enemies(warrior).first.direction
       warrior.bind!(direction)
       @enemies_bound_count += 1
       direction
@@ -45,8 +45,8 @@ class Map
 
   def near_enemies(warrior)
     all_enemies.select do |space|
-      direction = warrior.direction_of(space)
-      near_space = warrior.feel(direction)
+      #direction = warrior.direction_of(space)
+      near_space = warrior.feel(space.direction)
       space.location == near_space.location
     end
   end

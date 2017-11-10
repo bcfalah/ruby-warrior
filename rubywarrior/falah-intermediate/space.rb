@@ -2,16 +2,20 @@ class Space
   attr_accessor :unit_type, :status, :direction
 
   def initialize(attrs)
-    space = attrs[:space]
+    @space = attrs[:space]
     @direction = attrs[:direction]
 
-    if space.enemy?
+    if @space.enemy?
       @unit_type = :enemy
       @status = :free
-    elsif space.captive?
+    elsif @space.captive?
       @unit_type = :hostage
       @status = :captive
     end
+  end
+
+  def location
+    @space.location
   end
 
   def has_a?(unit_type)
@@ -20,9 +24,5 @@ class Space
 
   def status?(status)
     @status == status
-  end
-
-  def bind
-    @status = :bound
   end
 end
