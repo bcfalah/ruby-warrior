@@ -14,16 +14,21 @@ class Space
     end
   end
 
+  def has_a?(unit_type)
+    @unit_type == unit_type
+  end
+
+  def direction?(direction)
+    # check only if direction given
+    direction ? @direction == direction : true
+  end
+
   def location
     @space.location
   end
 
   def ticking?
     @space.ticking?
-  end
-
-  def has_a?(unit_type)
-    @unit_type == unit_type
   end
 
   def status?(status)

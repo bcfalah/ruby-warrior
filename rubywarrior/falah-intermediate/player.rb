@@ -11,7 +11,7 @@ class Player
   def play_turn(warrior)
     @map.populate(warrior)
     if !execute_prioritized_action
-      return if go_for_extra_points
+      #return if go_for_extra_points
       stairs_direction = warrior.direction_of_stairs
       if warrior.feel(stairs_direction).captive?
         warrior.rescue!(stairs_direction)
