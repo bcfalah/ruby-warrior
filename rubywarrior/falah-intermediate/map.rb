@@ -4,7 +4,6 @@ class Map
   def populate(warrior)
     @warrior = warrior
     @max_health ||= @warrior.health
-    @current_healh = @warrior.health
 
     spaces_with_units = @warrior.listen
     @all_spaces = []

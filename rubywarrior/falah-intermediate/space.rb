@@ -16,7 +16,7 @@ class Space
 
   def has?(options)
     options.all? do |key, value|
-      !send(key).nil? ? send(key) == value : @space.send(key)
+      respond_to?(key) ? send(key) == value : @space.send(key)
     end
   end
 
