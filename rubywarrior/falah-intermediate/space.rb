@@ -14,6 +14,12 @@ class Space
     end
   end
 
+  def has?(options)
+    options.all? do |key, value|
+      !send(key).nil? ? send(key) == value : @space.send(key)
+    end
+  end
+
   def has_a?(unit_type)
     @unit_type == unit_type
   end
@@ -25,10 +31,6 @@ class Space
 
   def location
     @space.location
-  end
-
-  def ticking?
-    @space.ticking?
   end
 
   def status?(status)
