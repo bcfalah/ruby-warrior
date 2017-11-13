@@ -29,7 +29,14 @@ class Map
   end
 
   def direction_actions(direction)
-    if near_spaces_with(unit_type: :enemy, direction: direction).any?
+    enemies_actions(direction) || hostages_actions(direction) ||
+      walk_actions(direction)
+  end
+
+  def enemies_actions(direction)
+    if many_enemies_ahead?(direction)
+      @warrior.detonate!(direction)
+    elsif near_spaces_with(unit_type: :enemy, direction: direction).any?
       # handle interfering enemy
       # bind a near enemy unless is the only one that is free
       if near_spaces_with(unit_type: :enemy).count > 1
@@ -37,12 +44,17 @@ class Map
       else
         attack_enemy
       end
-    elsif near_spaces_with(unit_type: :hostage, direction: direction).any?
-      # rescue interfering hostage
-      rescue_hostage
-    elsif @warrior.feel(direction).empty?
-      @warrior.walk!(direction)
     end
+  end
+
+  def hostages_actions(direction)
+    if near_spaces_with(unit_type: :hostage, direction: direction).any?
+      rescue_hostage
+    end
+  end
+
+  def walk_actions(direction)
+    @warrior.walk!(direction) if @warrior.feel(direction).empty?
   end
 
   def next_prioritazed_direction
@@ -72,6 +84,11 @@ class Map
       near_space = @warrior.feel(space.direction)
       space.location == near_space.location
     end
+  end
+
+  def many_enemies_ahead?(direction)
+    near_spaces_with(unit_type: :enemy, direction: direction).any? &&
+      @warrior.look(direction).count { |s| s.enemy? } > 1
   end
 
   def bind_enemy
