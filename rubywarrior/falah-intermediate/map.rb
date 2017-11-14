@@ -99,13 +99,13 @@ class Map
 
   def attack_enemy(direction)
     # TODO attack instead of detonate if a hostage can be damaged (he will die)
-    @warrior.detonate!(direction)
+    detonation_actions(direction)
     # @warrior.attack! direction
   end
 
   def far_enemies_actions(direction)
     if should_detonate?(direction)
-      detonate_if_healthy(direction)
+      detonation_actions(direction)
     end
   end
 
@@ -116,9 +116,14 @@ class Map
     enemies_ahead.any?
   end
 
-  def detonate_if_healthy(direction)
+  def detonation_actions(direction)
     if @warrior.health < MINIMUM_HEALTH
-      @warrior.rest!
+      # enemies could be further
+      if @warrior.feel(direction).enemy?
+        @warrior.bind!(direction)
+      else
+        @warrior.rest!
+      end
     else
       @warrior.detonate!(direction)
     end
