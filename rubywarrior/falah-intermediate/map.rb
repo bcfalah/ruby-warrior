@@ -1,5 +1,6 @@
 class Map
-  attr_reader :enemies_count
+  # based on how much damages a detonation
+  MINIMUM_HEALTH = 5
 
   def populate(warrior)
     @warrior = warrior
@@ -9,8 +10,10 @@ class Map
     @all_spaces = []
 
     spaces_with_units.each do |space_with_unit|
-      direction = warrior.direction_of(space_with_unit)
-      custom_space = Space.new(space: space_with_unit, direction: direction)
+      direction = @warrior.direction_of(space_with_unit)
+      distance = @warrior.distance_of(space_with_unit)
+      custom_space = Space.new(space: space_with_unit, direction: direction,
+        distance: distance)
       @all_spaces << custom_space
     end
   end
@@ -34,16 +37,16 @@ class Map
   end
 
   def enemies_actions(direction)
-    if many_enemies_ahead?(direction)
-      @warrior.detonate!(direction)
-    elsif near_spaces_with(unit_type: :enemy, direction: direction).any?
-      # handle interfering enemy
-      # bind a near enemy unless is the only one that is free
+    space_ahead = @warrior.feel(direction)
+    if !space_ahead.empty?
       if near_spaces_with(unit_type: :enemy).count > 1
-        bind_enemy
-      else
-        attack_enemy
+        bind_side_enemy(direction)
+        #bind_enemy
+      elsif space_ahead.enemy?
+        attack_enemy(direction)
       end
+    else
+      far_enemies_actions(direction)
     end
   end
 
@@ -80,23 +83,45 @@ class Map
   end
 
   def near_spaces_with(options)
-    spaces_with(options).select do |space|
-      near_space = @warrior.feel(space.direction)
-      space.location == near_space.location
-    end
+    spaces_with(options.merge(distance: 1))
   end
 
-  def many_enemies_ahead?(direction)
-    near_spaces_with(unit_type: :enemy, direction: direction).any? &&
-      @warrior.look(direction).count { |s| s.enemy? } > 1
+  def bind_side_enemy(direction)
+    side_space = near_spaces_with(unit_type: :enemy).find do |space|
+      space.direction != direction
+    end
+    @warrior.bind! side_space.direction
   end
 
   def bind_enemy
     @warrior.bind! direction_of_nearer_space_with(:enemy)
   end
 
-  def attack_enemy
-    @warrior.attack! direction_of_nearer_space_with(:enemy)
+  def attack_enemy(direction)
+    # TODO attack instead of detonate if a hostage can be damaged (he will die)
+    @warrior.detonate!(direction)
+    # @warrior.attack! direction
+  end
+
+  def far_enemies_actions(direction)
+    if should_detonate?(direction)
+      detonate_if_healthy(direction)
+    end
+  end
+
+  def should_detonate?(direction)
+    # TODO considere using spaces_with
+    #look for enemies in the radio of detonation
+    enemies_ahead = @warrior.look(direction).select { |s| s.enemy? && @warrior.distance_of(s) <= 2 }
+    enemies_ahead.any?
+  end
+
+  def detonate_if_healthy(direction)
+    if @warrior.health < MINIMUM_HEALTH
+      @warrior.rest!
+    else
+      @warrior.detonate!(direction)
+    end
   end
 
   def rescue_hostage

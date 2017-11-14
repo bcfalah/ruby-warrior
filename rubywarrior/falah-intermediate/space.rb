@@ -1,9 +1,10 @@
 class Space
-  attr_accessor :unit_type, :status, :direction
+  attr_accessor :unit_type, :status, :direction, :distance
 
   def initialize(attrs)
     @space = attrs[:space]
     @direction = attrs[:direction]
+    @distance = attrs[:distance]
 
     if @space.enemy?
       @unit_type = :enemy
