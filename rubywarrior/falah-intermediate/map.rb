@@ -26,6 +26,7 @@ class Map
   end
 
   def execute_extra_points_action
+    # evaluate if it is better to fo to stairs
     if @all_spaces.any?
       rest_until_healthy || direction_actions(@all_spaces.first.direction)
     end
@@ -36,17 +37,17 @@ class Map
       walk_actions(direction)
   end
 
-  def enemies_actions(direction)
-    space_ahead = @warrior.feel(direction)
+  def enemies_actions(ahead_direction)
+    space_ahead = @warrior.feel(ahead_direction)
     if !space_ahead.empty?
       if near_spaces_with(unit_type: :enemy).count > 1
-        bind_side_enemy(direction)
+        bind_side_enemy(ahead_direction)
         #bind_enemy
       elsif space_ahead.enemy?
-        attack_enemy(direction)
+        attack_enemy(ahead_direction)
       end
     else
-      far_enemies_actions(direction)
+      far_enemies_actions(ahead_direction)
     end
   end
 
@@ -98,9 +99,11 @@ class Map
   end
 
   def attack_enemy(direction)
-    # TODO attack instead of detonate if a hostage can be damaged (he will die)
-    detonation_actions(direction)
-    # @warrior.attack! direction
+    if !hostages_in_detonation_ratio?
+      detonation_actions(direction)
+    else
+      @warrior.attack!(direction)
+    end
   end
 
   def far_enemies_actions(direction)
@@ -111,9 +114,14 @@ class Map
 
   def should_detonate?(direction)
     # TODO considere using spaces_with
-    #look for enemies in the radio of detonation
+    # look for enemies in the radio of detonation
     enemies_ahead = @warrior.look(direction).select { |s| s.enemy? && @warrior.distance_of(s) <= 2 }
-    enemies_ahead.any?
+    #enemies_ahead.any?
+    !hostages_in_detonation_ratio? && enemies_ahead.count > 1
+  end
+
+  def hostages_in_detonation_ratio?
+    spaces_with(unit_type: :hostage).select { |s| @warrior.distance_of(s) <= 2 }.any?
   end
 
   def detonation_actions(direction)
