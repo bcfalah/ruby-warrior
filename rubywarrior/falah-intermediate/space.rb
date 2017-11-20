@@ -34,7 +34,15 @@ class Space
 
   def has?(options)
     options.all? do |key, value|
-      respond_to?(key) ? send(key) == value : @space.send(key)
+      respond_to?(key) ? eval_value(key, value) : @space.send(key)
+    end
+  end
+
+  def eval_value(key, value)
+    if key == :distance
+      value.include? send(key)
+    else
+      send(key) == value
     end
   end
 
