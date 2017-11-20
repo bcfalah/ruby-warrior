@@ -119,7 +119,8 @@ class Map
 
   def should_detonate?(direction)
     # TODO considere using spaces_with
-    enemies_ahead = @warrior.look(direction).select { |s| s.enemy? && @warrior.distance_of(s) <= 2 }
+    enemies_ahead = spaces_with(unit_type: :enemy, status: :free, direction: direction).
+      select { |s| @warrior.distance_of(s) <= 2 }
     # I cannot do this in a better way, the best would be to have a way to know how many enemies will be damaged
     !hostages_in_detonation_ratio? && enemies_ahead.any? && enemies_in_detonation_ratio?
   end
@@ -129,7 +130,7 @@ class Map
   end
 
   def enemies_in_detonation_ratio?
-    spaces_with(unit_type: :enemy, status: :free).select { |s| @warrior.distance_of(s) <= 2 }.any?
+    spaces_with(unit_type: :enemy, status: :free).select { |s| @warrior.distance_of(s) <= 2 }.count > 1
   end
 
   def detonation_actions(direction)
