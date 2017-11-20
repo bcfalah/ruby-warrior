@@ -1,6 +1,7 @@
 class Map
   # based on how much damages a detonation
   MINIMUM_HEALTH = 5
+  DIRECTIONS = [:left, :right, :forward, :backward]
 
   def populate(warrior)
     @warrior = warrior
@@ -36,8 +37,8 @@ class Map
   end
 
   def direction_actions(direction)
-    enemies_actions(direction) || hostages_actions(direction) ||
-      walk_actions(direction)
+    elude_stairs(direction) || enemies_actions(direction) ||
+      hostages_actions(direction) || walk_actions(direction)
   end
 
   def enemies_actions(ahead_direction)
@@ -64,6 +65,14 @@ class Map
 
   def walk_actions(direction)
     @warrior.walk!(direction) if @warrior.feel(direction).empty?
+  end
+
+  def elude_stairs(direction)
+    if @warrior.feel(direction).stairs?
+      (DIRECTIONS - [direction]).each do |elude_dir|
+        return @warrior.walk!(elude_dir) if @warrior.feel(elude_dir).empty?
+      end
+    end
   end
 
   def next_prioritazed_direction
