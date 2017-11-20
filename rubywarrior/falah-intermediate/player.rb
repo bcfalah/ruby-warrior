@@ -4,7 +4,6 @@ require 'space'
 
 class Player
   def initialize
-    @all_actions_executed = false
     @map = Map.new
   end
 

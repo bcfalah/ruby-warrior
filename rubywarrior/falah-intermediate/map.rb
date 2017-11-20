@@ -7,15 +7,18 @@ class Map
     @max_health ||= @warrior.health
 
     spaces_with_units = @warrior.listen
-    @all_spaces = []
+    @all_spaces ||= []
 
     spaces_with_units.each do |space_with_unit|
-      direction = @warrior.direction_of(space_with_unit)
-      distance = @warrior.distance_of(space_with_unit)
-      custom_space = Space.new(space: space_with_unit, direction: direction,
-        distance: distance)
-      @all_spaces << custom_space
+      if (custom_space = spaces_with(location: space_with_unit.location).first)
+        Space.update(custom_space, space_with_unit, warrior)
+      else
+        custom_space = Space.build(space_with_unit, warrior)
+        @all_spaces << custom_space
+      end
     end
+
+    delete_old_spaces(spaces_with_units)
   end
 
   # this method should only handle prioritized actions (actions to do for
@@ -26,7 +29,7 @@ class Map
   end
 
   def execute_extra_points_action
-    # evaluate if it is better to fo to stairs
+    # evaluate if it is better to go to stairs
     if @all_spaces.any?
       rest_until_healthy || direction_actions(@all_spaces.first.direction)
     end
@@ -39,11 +42,13 @@ class Map
 
   def enemies_actions(ahead_direction)
     space_ahead = @warrior.feel(ahead_direction)
+    custom_space = get_custom_space(space_ahead)
+
     if !space_ahead.empty?
-      if near_spaces_with(unit_type: :enemy).count > 1
+      if near_spaces_with(unit_type: :enemy, status: :free).count > 1
         bind_side_enemy(ahead_direction)
         #bind_enemy
-      elsif space_ahead.enemy?
+      elsif custom_space.free_enemy?
         attack_enemy(ahead_direction)
       end
     else
@@ -52,7 +57,7 @@ class Map
   end
 
   def hostages_actions(direction)
-    if near_spaces_with(unit_type: :hostage, direction: direction).any?
+    if near_spaces_with(status: :captive, direction: direction).any?
       rescue_hostage
     end
   end
@@ -72,7 +77,7 @@ class Map
   end
 
   def under_atack?
-    near_spaces_with(unit_type: :enemy).any?
+    near_spaces_with(unit_type: :enemy, status: :free).any?
   end
 
   private
@@ -88,14 +93,14 @@ class Map
   end
 
   def bind_side_enemy(direction)
-    side_space = near_spaces_with(unit_type: :enemy).find do |space|
+    side_space = near_spaces_with(unit_type: :enemy, status: :free).find do |space|
       space.direction != direction
     end
     @warrior.bind! side_space.direction
   end
 
   def bind_enemy
-    @warrior.bind! direction_of_nearer_space_with(:enemy)
+    @warrior.bind! nearer_space_with(:enemy).direction
   end
 
   def attack_enemy(direction)
@@ -114,14 +119,17 @@ class Map
 
   def should_detonate?(direction)
     # TODO considere using spaces_with
-    # look for enemies in the radio of detonation
     enemies_ahead = @warrior.look(direction).select { |s| s.enemy? && @warrior.distance_of(s) <= 2 }
-    #enemies_ahead.any?
-    !hostages_in_detonation_ratio? && enemies_ahead.count > 1
+    # I cannot do this in a better way, the best would be to have a way to know how many enemies will be damaged
+    !hostages_in_detonation_ratio? && enemies_ahead.any? && enemies_in_detonation_ratio?
   end
 
   def hostages_in_detonation_ratio?
     spaces_with(unit_type: :hostage).select { |s| @warrior.distance_of(s) <= 2 }.any?
+  end
+
+  def enemies_in_detonation_ratio?
+    spaces_with(unit_type: :enemy, status: :free).select { |s| @warrior.distance_of(s) <= 2 }.any?
   end
 
   def detonation_actions(direction)
@@ -138,14 +146,24 @@ class Map
   end
 
   def rescue_hostage
-    @warrior.rescue! direction_of_nearer_space_with(:hostage)
+    hostage_space = near_spaces_with(status: :captive).first
+    @warrior.rescue! hostage_space.direction
   end
 
-  def direction_of_nearer_space_with(unit_type)
-    near_spaces_with(unit_type: unit_type).first.direction
+  def nearer_space_with(unit_type)
+    near_spaces_with(unit_type: unit_type).first
   end
 
   def spaces_with_priority
     spaces_with(ticking?: true)
+  end
+
+  def get_custom_space(space)
+    spaces_with(location: space.location).first
+  end
+
+  def delete_old_spaces(new_spaces)
+    locations = new_spaces.map(&:location)
+    @all_spaces.delete_if { |space| !locations.include?(space.location) }
   end
 end
